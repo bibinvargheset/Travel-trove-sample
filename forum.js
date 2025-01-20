@@ -1,160 +1,136 @@
-// URL of your backend API
-const API_URL = 'http://localhost:3000/posts'; // Replace with your actual API URL
-
-// Function to fetch posts from the database
-async function fetchPosts() {
-    try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-            throw new Error('Failed to fetch posts');
-        }
-        const posts = await response.json();
-        renderPosts(posts);
-    } catch (error) {
-        console.error('Error fetching posts:', error);
-    }
-}
-
-// Function to render posts
-function renderPosts(posts) {
-    const forumPostsContainer = document.getElementById('forumPosts');
-    forumPostsContainer.innerHTML = '';
-
-    posts.forEach(post => {
-        const postTemplate = document.getElementById('postTemplate').content.cloneNode(true);
-
-        postTemplate.querySelector('.post').setAttribute('data-post-id', post.id);
-        postTemplate.querySelector('.post-title').textContent = post.title;
-        postTemplate.querySelector('.post-content').textContent = post.content;
-        postTemplate.querySelector('.post-tags').textContent = post.tags.join(', ');
-
-        const postMedia = postTemplate.querySelector('.post-media');
-        post.images.forEach(img => {
-            const imgElement = document.createElement('img');
-            imgElement.src = img;
-            imgElement.className = 'post-image';
-            postMedia.appendChild(imgElement);
-        });
-        post.videos.forEach(video => {
-            const videoElement = document.createElement('video');
-            videoElement.controls = true;
-            videoElement.innerHTML = `<source src="${video}" type="video/mp4">Your browser does not support the video tag.`;
-            videoElement.className = 'post-video';
-            postMedia.appendChild(videoElement);
-        });
-
-        // Render replies
-        const repliesContainer = postTemplate.querySelector('.replies');
-        post.replies.forEach(reply => {
-            const replyElement = document.createElement('div');
-            replyElement.className = 'reply';
-            replyElement.innerHTML = `
-                <p>${reply.content}</p>
-                <small>Replied on: ${reply.timestamp}</small>
-            `;
-            repliesContainer.appendChild(replyElement);
-        });
-
-        // Attach event listeners
-        postTemplate.querySelector('.upvote-btn').addEventListener('click', () => upvotePost(post.id));
-        postTemplate.querySelector('.downvote-btn').addEventListener('click', () => downvotePost(post.id));
-        postTemplate.querySelector('.share-btn').addEventListener('click', () => sharePost(post.id));
-        postTemplate.querySelector('.reply-btn').addEventListener('click', () => toggleReplyField(post.id));
-
-        forumPostsContainer.appendChild(postTemplate);
-    });
-}
-
-// Function to toggle the reply field
-function toggleReplyField(postId) {
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-    const replyField = postElement.querySelector('.reply-field');
-    replyField.style.display = replyField.style.display === 'none' ? 'block' : 'none';
-
-    // Add event listener for the "Submit Reply" button
-    const submitReplyBtn = postElement.querySelector('.submit-reply-btn');
-    submitReplyBtn.onclick = () => submitReply(postId, replyField);
-}
-
-// Function to handle reply submission
-async function submitReply(postId, replyField) {
-    const textarea = replyField.querySelector('textarea');
-    const replyContent = textarea.value.trim();
-
-    if (!replyContent) {
-        alert('Reply cannot be empty!');
+document.addEventListener("DOMContentLoaded", () => {
+    const forumPostsContainer = document.getElementById("forumPosts");
+    const postPopup = document.getElementById("postPopup");
+    const openPostButton = document.getElementById("openPostButton");
+    const closePostButton = document.getElementById("closePostButton");
+    const postForm = document.getElementById("postForm");
+    const postTemplate = document.getElementById("postTemplate");
+    if (!postTemplate || !('content' in document.createElement('template'))) {
+        console.error("Your browser doesn't support HTML template elements.");
         return;
     }
+    const categoryFilter = document.getElementById("categoryFilter");
+    const sortOrder = document.getElementById("sortOrder");
 
-    try {
-        // Send the reply to the server
-        const response = await fetch(`${API_URL}/${postId}/replies`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                content: replyContent,
-                timestamp: new Date().toISOString(),
-            }),
-        });
+    const API_BASE_URL = "http://localhost:5000"; // Update with your backend URL
 
-        if (!response.ok) {
-            throw new Error('Failed to submit reply');
+    // Fetch all posts from the backend
+    async function fetchPosts() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/posts`);
+            const posts = await response.json();
+
+            // Clear existing posts
+            forumPostsContainer.innerHTML = "";
+
+            // Render posts
+            posts.forEach(renderPost);
+        } catch (error) {
+            console.error("Error fetching posts:", error);
+        }
+    }
+
+    // Render a single post using the template
+    function renderPost(post) {
+        const postElement = postTemplate.content.cloneNode(true);
+        const postContainer = postElement.querySelector(".post");
+
+        postContainer.setAttribute("data-post-id", post._id || "");
+
+        postElement.querySelector(".post-title").textContent = post.title;
+        postElement.querySelector(".post-content").textContent = post.content;
+        postElement.querySelector(".post-tags").textContent = post.tags ? post.tags.join(", ") : "";
+
+        const mediaContainer = postElement.querySelector(".post-media");
+        if (post.image_url) {
+            const img = document.createElement("img");
+            img.src = post.image_url;
+            img.alt = "Post Image";
+            img.style.width = "100%";
+            mediaContainer.appendChild(img);
+        }
+        if (post.video_url) {
+            const video = document.createElement("video");
+            video.src = post.video_url;
+            video.controls = true;
+            video.style.width = "100%";
+            mediaContainer.appendChild(video);
         }
 
-        // Clear the reply field and hide it
-        textarea.value = '';
-        replyField.style.display = 'none';
-
-        // Fetch and re-render posts
-        fetchPosts();
-    } catch (error) {
-        console.error('Error submitting reply:', error);
+        forumPostsContainer.appendChild(postElement);
     }
-}
 
-// Placeholder for upvote functionality
-function upvotePost(postId) {
-    alert(`Upvoted post ${postId}`);
-}
+    // Show the "Create New Post" popup
+    openPostButton.addEventListener("click", () => {
+        postPopup.style.display = "block";
+    });
 
-// Placeholder for downvote functionality
-function downvotePost(postId) {
-    alert(`Downvoted post ${postId}`);
-}
+    // Close the "Create New Post" popup
+    closePostButton.addEventListener("click", () => {
+        postPopup.style.display = "none";
+    });
 
-// Placeholder for share functionality
-function sharePost(postId) {
-    alert(`Shared post ${postId}`);
-}
+        const formData = new FormData(postForm);
+        if (!formData.has('title') || !formData.has('content')) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+    postForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-// Add new post (saving to the database)
-async function addPost(title, content, tags, images = [], videos = []) {
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                title,
-                content,
-                tags,
-                images,
-                videos,
-                replies: [],
-            }),
+        const formData = new FormData(postForm);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/add_post`, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                alert("Post created successfully!");
+                postPopup.style.display = "none";
+                postForm.reset();
+                fetchPosts(); // Reload posts
+            } else {
+                const errorData = await response.json();
+                alert(`Error creating post: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error("Error creating post:", error);
+            alert("Failed to create post. Please try again.");
+        }
+    });
+
+    // Filter posts by category
+    categoryFilter.addEventListener("change", async () => {
+        const selectedCategory = categoryFilter.value;
+        const allPosts = await fetch(`${API_BASE_URL}/posts`).then((res) => res.json());
+
+        const filteredPosts = selectedCategory
+            ? allPosts.filter((post) => post.tags && post.tags.includes(selectedCategory))
+            : allPosts;
+
+        forumPostsContainer.innerHTML = "";
+        filteredPosts.forEach(renderPost);
+    });
+
+    // Sort posts
+    sortOrder.addEventListener("change", async () => {
+        const selectedOrder = sortOrder.value;
+        const allPosts = await fetch(`${API_BASE_URL}/posts`).then((res) => res.json());
+
+        const sortedPosts = allPosts.sort((a, b) => {
+            if (selectedOrder === "latest") {
+                return new Date(b.created_at) - new Date(a.created_at);
+            } else if (selectedOrder === "upvotes") {
+                return (b.upvotes || 0) - (a.upvotes || 0);
+            }
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to add new post');
-        }
+        forumPostsContainer.innerHTML = "";
+        sortedPosts.forEach(renderPost);
+    });
 
-        // Fetch and re-render posts
-        fetchPosts();
-    } catch (error) {
-        console.error('Error adding new post:', error);
-    }
-}
-
-// Render the posts on page load
-document.addEventListener('DOMContentLoaded', () => {
+    // Fetch initial posts
     fetchPosts();
 });
