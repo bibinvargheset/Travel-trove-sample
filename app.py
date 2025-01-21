@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, Response
 from flask_cors import CORS
 from pymongo import MongoClient
 from gridfs import GridFS
@@ -23,19 +23,24 @@ fs = GridFS(db)  # GridFS for storing images
 def home():
     return render_template('forum.html')  # Render your HTML template
 
+
 @app.route('/posts', methods=['GET'])
 def get_all_posts():
     try:
-        posts = list(collection.find({}, {"_id": 0}))
+        posts = list(collection.find({}))
         for post in posts:
-            # If there are image or video IDs, include URLs to retrieve them
+            # Convert ObjectId to string for JSON
+            post["_id"] = str(post["_id"])
             if post.get("image_id"):
-                post["image_url"] = f"/file/{post['image_id']}"
+                post["image_url"] = f"http://localhost:5000/file/{
+                    post['image_id']}"
             if post.get("video_id"):
-                post["video_url"] = f"/file/{post['video_id']}"
+                post["video_url"] = f"http://localhost:5000/file/{
+                    post['video_id']}"
         return jsonify(posts), 200
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/add_post', methods=['POST'])
 def add_post():
@@ -43,19 +48,21 @@ def add_post():
         # Get form data
         title = request.form.get('title')
         content = request.form.get('content')
-        tags = request.form.get('tags').split(",")  # Split comma-separated tags
+        tags = request.form.get('tags', "").split(",")  # Split tags
 
-        # Store image and video in GridFS
-        image_file = request.files.get('images')  # Get image file from the form
-        video_file = request.files.get('videos')  # Get video file from the form
+        # Handle file uploads
+        image_file = request.files.get('images')
+        video_file = request.files.get('videos')
 
         image_id = None
         video_id = None
 
         if image_file:
-            image_id = fs.put(image_file, filename=image_file.filename, content_type=image_file.content_type)
+            image_id = fs.put(image_file, filename=image_file.filename,
+                              content_type=image_file.content_type)
         if video_file:
-            video_id = fs.put(video_file, filename=video_file.filename, content_type=video_file.content_type)
+            video_id = fs.put(video_file, filename=video_file.filename,
+                              content_type=video_file.content_type)
 
         # Insert post into MongoDB
         post = {
@@ -67,20 +74,25 @@ def add_post():
         }
         collection.insert_one(post)
 
-        return "Post added successfully!", 201
+        return jsonify({"message": "Post added successfully!"}), 201
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-    pass
+
+
 @app.route('/file/<file_id>', methods=['GET'])
 def get_file(file_id):
     try:
         # Retrieve file from GridFS
         file = fs.get(ObjectId(file_id))
-        response = app.response_class(file.read(), content_type=file.content_type)
-        response.headers["Content-Disposition"] = f"inline; filename={file.filename}"
+        response = app.response_class(
+            file.read(), content_type=file.content_type)
+        response.headers["Content-Disposition"] = f"inline; filename={
+            file.filename}"
         return response
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 404
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
