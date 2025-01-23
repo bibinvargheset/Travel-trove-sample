@@ -1,0 +1,121 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #eff1f3;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.header-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.profile-image {
+    position: relative;
+    margin-right: 20px;
+}
+
+.profile-image img {
+    border-radius: 50%;
+    width: 100px;
+    height: 100px;
+    border: 3px solid #d77a61;
+    cursor: pointer;
+}
+
+.user-info {
+    margin-top: 120px;
+}
+
+.user-info input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #dbd3d8;
+    margin-bottom: 10px;
+}
+
+.edit-button {
+    background-color: #d77a61;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: background-color 0.3s;
+}
+
+.edit-button:hover {
+    background-color: #dbd3d8;
+}
+
+.bio-section,
+.preferences-section,
+.past-activities,
+.bookings,
+.forum-activity {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.preferences-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.preference {
+    background: #d77a61;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.activity-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: flex-start;
+}
+
+.activity-card {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 150px;
+}
+
+.activity-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+.booking-card {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: 10px 0;
+}
+
+.forum-card {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: 10px 0;
+}

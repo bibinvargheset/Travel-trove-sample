@@ -1,0 +1,1 @@
+# Travel-trove-sample made databse connect with supabase and mongodb atlas 
