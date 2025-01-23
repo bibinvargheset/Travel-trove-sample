@@ -46,45 +46,27 @@ document.addEventListener("DOMContentLoaded", () => {
         postElement.querySelector(".post-upvotes").textContent = post.upvotes || 0;
         postElement.querySelector(".post-downvotes").textContent = post.downvotes || 0;
 
-
         const mediaContainer = postElement.querySelector(".post-media");
-        if (post.image_url) {
-            const img = document.createElement("img");
-            img.src = post.image_url;
-            img.alt = "Post Image";
-            img.style.width = "100%";
-            mediaContainer.appendChild(img);
+        if (post.image_urls) {
+            post.image_urls.forEach(url => {
+                const img = document.createElement("img");
+                img.src = url;
+                img.alt = "Post Image";
+                img.style.width = "100%";
+                mediaContainer.appendChild(img);
+            });
         }
-        if (post.video_url) {
-            const video = document.createElement("video");
-            video.src = post.video_url;
-            video.controls = true;
-            video.style.width = "100%";
-            mediaContainer.appendChild(video);
+        if (post.video_urls) {
+            post.video_urls.forEach(url => {
+                const video = document.createElement("video");
+                video.src = url;
+                video.controls = true;
+                video.style.width = "100%";
+                mediaContainer.appendChild(video);
+            });
         }
-                  // Add event listeners for upvote and downvote buttons
-        postElement.querySelector(".upvote-btn").addEventListener("click", () => handleVote(post._id, "upvote"));
-        postElement.querySelector(".downvote-btn").addEventListener("click", () => handleVote(post._id, "downvote"));
-
 
         forumPostsContainer.appendChild(postElement);
-    }
-     // Handle upvote and downvote
-     async function handleVote(postId, type) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/posts/${postId}/${type}`, {
-                method: "POST"
-            });
-            if (response.ok) {
-                fetchPosts(); // Reload posts to reflect the updated votes
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.message}`);
-            }
-        } catch (error) {
-            console.error(`Error handling ${type}:`, error);
-            alert(`Failed to ${type}. Please try again.`);
-        }
     }
 
     // Show the "Create New Post" popup

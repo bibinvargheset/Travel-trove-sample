@@ -12,7 +12,7 @@ CORS(app)
 
 
 # MongoDB and gridfs setup
-client = MongoClient('mongodb+srv://nightanon038:dah9NfhKw71cA9ix@test-cluster.l9zqd.mongodb.net/?retryWrites=true&w=majority&appName=test-cluster')  # Replace with your MongoDB URI
+client = MongoClient('mongodb+srv://nightanon038:wV86jTZpkYJ1K6Qo@travel-trove.sdb1i.mongodb.net/?retryWrites=true&w=majority&appName=travel-trove')  # Replace with your MongoDB URI
 serverSelectionTimeoutMS=50000,
 db = client['travel_platform']  # Database name
 collection = db['posts']
@@ -49,6 +49,9 @@ def add_post():
         title = request.form.get('title')
         content = request.form.get('content')
         tags = request.form.get('tags', "").split(",")  # Split tags
+        upvote_post = request.form.get('upvote_post')
+        downvote_post = request.form.get('downvote_post')
+        reply_post  = request.form.get('reply_post')
 
         # Handle file uploads
         image_file = request.files.get('images')
@@ -66,11 +69,17 @@ def add_post():
 
         # Insert post into MongoDB
         post = {
+            "_id": ObjectId(),
             "title": title,
             "content": content,
             "tags": tags,
             "image_id": str(image_id) if image_id else None,
-            "video_id": str(video_id) if video_id else None
+            "video_id": str(video_id) if video_id else None,
+            "upvotes": 0,   # Default upvotes to 0
+            "downvotes": 0, # Default downvotes to 0
+            "replies": [],
+            
+            
         }
         collection.insert_one(post)
 
@@ -92,7 +101,39 @@ def get_file(file_id):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 404
 
+@app.route('/file/<file_id>', methods=['DELETE'])
+def delete_file(file_id):
+    try:
+        # Delete file from GridFS
+        fs.delete(ObjectId(file_id))
+        return jsonify({"message": "File deleted successfully!"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 404
+@app.route('/posts/<post_id>/upvote', methods=['POST'])
+def upvote_post(post_id):
+    try:
+        collection.update_one({"_id": ObjectId(post_id)}, {"$inc": {"upvotes": 1}})
+        return jsonify({"message": "Upvoted successfully!"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/posts/<post_id>/downvote', methods=['POST'])
+def downvote_post(post_id):
+    try:
+        collection.update_one({"_id": ObjectId(post_id)}, {"$inc": {"downvotes": 1}})
+        return jsonify({"message": "Downvoted successfully!"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/posts/reply/<post_id>', methods=['POST'])
+def reply_post(post_id):
+    try:
+        content = request.form.get('content')
+        reply = {"content": content}
+        collection.update_one({"_id": ObjectId(post_id)}, {"$push": {"replies": reply}})
+        return jsonify({"message": "Reply added successfully!"}), 201
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
