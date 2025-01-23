@@ -7,7 +7,8 @@ from io import BytesIO
 # Flask app setup
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:5500"}})
+
 
 
 
@@ -51,7 +52,7 @@ def add_post():
         tags = request.form.get('tags', "").split(",")  # Split tags
         upvote_post = request.form.get('upvote_post')
         downvote_post = request.form.get('downvote_post')
-        reply_post  = request.form.get('reply_post')
+        
 
         # Handle file uploads
         image_file = request.files.get('images')
@@ -77,7 +78,7 @@ def add_post():
             "video_id": str(video_id) if video_id else None,
             "upvotes": 0,   # Default upvotes to 0
             "downvotes": 0, # Default downvotes to 0
-            "replies": [],
+            "replies":[]
             
             
         }
@@ -128,7 +129,13 @@ def downvote_post(post_id):
 @app.route('/posts/reply/<post_id>', methods=['POST'])
 def reply_post(post_id):
     try:
-        content = request.form.get('content')
+        # Use request.get_json() to parse JSON body
+        data = request.get_json()
+        content = data.get('content', '').strip()  # Get content and strip whitespace
+
+        if not content:
+            return jsonify({"status": "error", "message": "Reply content cannot be empty"}), 400
+        
         reply = {"content": content}
         collection.update_one({"_id": ObjectId(post_id)}, {"$push": {"replies": reply}})
         return jsonify({"message": "Reply added successfully!"}), 201
