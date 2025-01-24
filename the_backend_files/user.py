@@ -89,7 +89,7 @@ class Travel_db(BaseModel):
 
     class Config:
         from_attribute = True
-
+        
 # Dependency to get the database session
 def get_db():
     db = sessionLocal()
@@ -118,38 +118,8 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_email = db.query(User).filter(User.email == user.email).first()
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
-    existing_country = db.query(State).filter(State.country_name == user.country).first()
-    if existing_country:
-        print('existing_state')
+    existing_location = location_add(country=user.country,state=user.state,location=user.location,db=db)
     
-    existing_state = db.query(State).filter(State.state_name == user.state).first()
-    if not existing_state:
-        new_state = State(
-            state_name=user.state,
-            country_name=user.country,
-        
-        )
-        db.add(new_state)
-        db.commit()
-        db.refresh(new_state)
-        existing_state = new_state
-        
-        
-    existing_location= db.query(Location).filter(Location.location_name == user.location).first()
-    if not existing_location:
-        new_location = Location(
-            location_name=user.location,
-            state_id = existing_state.state_id
-        )
-        db.add(new_location)
-        db.commit()
-        db.refresh(new_location)
-        existing_location = new_location
-        
-
-    else:
-        print('existing_state')
-
     
     # Hash the password before storing
     hashed_password = hash_password(user.password)
@@ -241,6 +211,41 @@ async def get_user(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+@app.get("/travel_data/{user_id}")
+async def travel_data(user_id: int, db: Session = Depends(get_db)):
+    # Assuming TravelData is your ORM model
+    travel_info = db.query(TravelData).filter(TravelData.username_id == user_id).all()
+    
+    import json
+    
+    # Convert the list of ORM objects to a list of dictionaries
+    travel_info_json = [
+        {
+            "id": record.table_id,
+            "username_id": record.username_id,
+            "start_location": record.start_location,
+            "destination": record.destination,
+            "travel_type": record.travel_type,
+            "travel_price": record.travel_price,
+            "days": record.days,
+            "stay": record.stay,
+            "stay_price": record.stay_price,
+            "travel_time": record.travel_time,
+            "fromdate": record.fromdate.isoformat() if record.fromdate else None,
+            "todate": record.todate.isoformat() if record.todate else None,
+            "backdate": record.backdate.isoformat() if record.backdate else None
+        }
+        for record in travel_info
+    ]
+    
+    # Serialize to JSON
+    travel_info_json_str = json.dumps(travel_info_json)
+    
+    print(travel_info_json_str)
+    
+    # if not user:
+    #     raise HTTPException(status_code=404, detail="User not found")
+    return travel_info_json_str
 
 @app.get("/pass/{user_id}")
 async def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -293,6 +298,6 @@ async def get_profile_pic(user_id: int, db: Session = Depends(get_db)):
         return Response(content=user.profile_pic, media_type="image/jpeg")
     raise HTTPException(status_code=404, detail="Profile picture not found")
 #area untested
-
+#
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5000)
